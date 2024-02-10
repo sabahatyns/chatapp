@@ -1,37 +1,85 @@
 import { View, Button, FlatList, StyleSheet, Text } from 'react-native';
-import React, { useState } from 'react';
+import React, { useState , useCallback,useEffect} from 'react';
+import { GiftedChat } from 'react-native-gifted-chat'
+import { getAuth } from '@react-native-firebase/auth';
+
+//import {addDoc,  collection , getFirestore} from 'firebase/firstore';
+//import app from '@react-native-firebase';
 import Input from "../components/Input";
 
 
 const Chats = () => {
-    let currentUser ="Faizan"
-    const user = [{
-        message: 'Hi',
-        messageFrom: 'Faizan'
+    const [messages, setMessages] = useState([])
 
-    },
-    {
-        message: 'Hello',
-        messageFrom: 'Ahmed'
+    useEffect(() => {
+      setMessages([
+        {
+          _id: 1,
+          text: 'Hello',
+          createdAt: new Date(),
+          user: {
+            _id: 2,
+            name: 'React Native',
+            avatar: 'https://placeimg.com/140/140/any',
+          },
+        },
+      ])
+    }, [])
+  
+    const onSend = useCallback((messages = []) => {
+      setMessages(previousMessages =>
+        GiftedChat.append(previousMessages, messages),
+      )
+    }, [])
+    // let currentUser ="Faizan"
+    // const user = [
+    //     {
+    //     message: 'Hi',
+    //     messageFrom: 'Faizan'
 
-    },
-    {
-        message: "How're you",
-        messageFrom: 'Dani'
+    // },
+    // {
+    //     message: 'Hello',
+    //     messageFrom: 'Ahmed'
 
-    },
+    // },
+    // {
+    //     message: "How're you",
+    //     messageFrom: 'Dani'
 
-    ]
-    const [message, setmessage] = useState(null)
+    // },
+
+    // ]
+    // const [message, setmessage] = useState(null)
+    // const onSendpressed  = async ()=>{
+    //     await addDoc(collection(db,'Chats'),{
+    //         messageFrom:email,
+    //         message,
+    //         time:ServerTimestamp()    
+    // })
+    // setmessage
+    // }
     return (
         <View style={styles.container}>
-             <FlatList
+             <View style={{
+                justifyContent:'center',
+                alignItems:"center",
+                backgroundColor:"#d3d3d3", 
+                height:55,
+                top:0,}}>
+                        <Text style={{
+                            fontSize: 30, 
+                            fontWeight: 'bold', 
+                            color: 'black', }}> Chat</Text>
+                    </View>
+             {/* <FlatList
                 data={user}
                 renderItem={({ item }) => {
                     return (
                         <View style={item.messageFrom==currentUser ?{...styles.card,
                             backgroundColor:"#d3d3d3",
-                            alignSelf:"flex-end"
+                            alignSelf:"flex-end",
+                            marginTop:15
                             
                         }: styles.card}>
                             <Text style={{fontWeight:"bold"}} >{item.messageFrom}</Text>
@@ -41,17 +89,29 @@ const Chats = () => {
                 }
                 }
                 keyExtractor={item => item.messageFrom}
-            /> 
-            <View style={styles.row}>
+            />  */}
+             <GiftedChat
+      messages={messages}
+      onSend={messages => onSend(messages)}
+      user={{
+        _id: 1,
+      }}
+    />
+            {/* <View style={styles.row}>
                 <Input
                     placeholder={'write your message...'}
                     onChangeText={(t) => setmessage(t)} />
-                <Button title="send"
+                <Text style={{
+                    color: '#2196F3',
+                    fontSize:20,
+                    fontWeight:"900",
+                   // paddingLeft:5,
+                }}
                     //color="red"
-                    onPress={() => alert('pressed')}
-                />
+                    onPress={() => alert('sent')}>send</Text>
+                
 
-            </View>
+            </View> */}
 
         </View>
     )
@@ -60,9 +120,11 @@ const styles = StyleSheet.create({
 
     container: {
         flex: 1,
+        //paddingTop:25
     },
     row: {
         flexDirection: "row",
+        justifyContent:"center",
         alignItems: "center",
         position: "absolute",
         bottom: 0,

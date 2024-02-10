@@ -17,8 +17,8 @@ const Input = ({ placeholder, onChangeText }) => {
 const style = StyleSheet.create({
 
     container: {
-        width: '80%',
-        backgroundColor: 'white',
+        width: '85%',
+        backgroundColor: '#d3d3d3',
         //flexDirection: 'row',
         //paddingVertical: 12,
         borderRadius: 30,
