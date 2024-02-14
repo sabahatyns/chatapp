@@ -1,18 +1,21 @@
-import { StyleSheet, Image, SafeAreaView, View } from "react-native";
+import { StyleSheet, Image, SafeAreaView, View, Alert } from "react-native";
 import React, { useState,useEffect } from "react";
 //import firebase from "../firebase"
 import { getAuth, createUserWithEmailAndPassword } from '@react-native-firebase/auth';
 import Button1 from "../components/Button1";
 import { useNavigation } from "@react-navigation/native";
-
+import uuid from 'react-native-uuid';
+import firestore from '@react-native-firebase/firestore';
 import Input from "../components/Input";
 
 
 
 
 function Signup( props) {
+    const [Name, setName] = useState(null);
     const [Email, setEmail] = useState(null);
     const [Password, setPassword] = useState(null);
+    const [ConfirmPassword, setConfirmPassword] = useState(null);
     const auth = getAuth();
     const onSignuppressed = () => {
         createUserWithEmailAndPassword(auth, Email, Password)
@@ -35,6 +38,46 @@ function Signup( props) {
 
 
     }
+    const registerUser = ()=>{
+        const userId= uuid.v4();
+        firestore()
+        .collection('users')
+        .doc(userId)
+        .set({
+            Name: Name,
+            Email: Email,
+            Password:Password,
+            userId:userId,
+        })
+        .then(res=>{
+            console.log('user created');
+            navigation.navigate('signin');
+        })
+        .catch(error=>{
+            console.log(error);
+        })
+    };
+    const validate=()=>{
+        let isValid =true;
+        if (Name == ""){
+            isValid=false;
+        }
+        if (Email == ""){
+            isValid=false;
+        }
+        if (Password == ""){
+            isValid=false;
+        }
+        if (ConfirmPassword == ""){
+            isValid=false;
+        }
+        if (ConfirmPassword !== Password){
+            isValid=false;
+        }
+        return isValid;
+        
+    }
+
     const navigation = useNavigation();
 
     return (
@@ -45,14 +88,24 @@ function Signup( props) {
                 source={require("../assets/logo.jpg")}
                 style={styles.image}
                 />
+                <Input placeholder="Name"
+                    onChangeText={(t) => setName(t)} />
                 <Input placeholder="Email"
                     onChangeText={(t) => setEmail(t)} />
                 <Input placeholder="Password"
                     onChangeText={(t) => setPassword(t)} />
+                <Input placeholder="Confirm Password"
+                    onChangeText={(t) => setConfirmPassword(t)} />
 
 
                 <Button1 title="Signup"
-                    onPress={() => onSignuppressed()} />
+                    onPress={() =>{
+                    if (validate()){
+                     registerUser();
+                    }
+                else{
+                    Alert.alert('Please Enter Correct Data');}
+                }} />
 
         </SafeAreaView>
     );
