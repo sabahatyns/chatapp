@@ -7,7 +7,6 @@ import Button1 from "../components/Button1";
 import Input from "../components/Input";
 import Loader from "../components/loader";
 
-// import { Icon } from "react-native-vector-icons/icon";
 
 
 

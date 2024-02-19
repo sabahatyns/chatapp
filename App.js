@@ -6,7 +6,8 @@ import Welcome from './screens/welcome';
 import Signin from './screens/signin';
 import Signup from './screens/signup';
 import Main from './screens/main';
-
+import LocationSelectionScreen from './screens/location';
+import Location from './screens/location';
 
 
 const Stack = createNativeStackNavigator();
@@ -39,6 +40,11 @@ export default function Mycal() {
          Options={{ headerShown: true }}
           name="chat"
           component={Chats}
+        />
+        <Stack.Screen
+         Options={{ headerShown: true }}
+          name="location"
+          component={Location}
         />
         
 

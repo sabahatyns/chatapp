@@ -1,56 +1,165 @@
-import { View, Buttons, Image, FlatList, Dimensions, StyleSheet, Text, TouchableOpacity } from 'react-native';
+import { View, Image, Button, StyleSheet, Text, TouchableOpacity } from 'react-native';
 import React, { useState, useCallback, useEffect } from 'react';
+//import Geolocation from 'react-native-geolocation-service';
+import { request, PERMISSIONS } from 'react-native-permissions';
 import { Bubble, GiftedChat, Send } from 'react-native-gifted-chat'
 import firestore from '@react-native-firebase/firestore';
-import { useRoute } from '@react-navigation/native';
+import { useNavigation, useRoute } from '@react-navigation/native';
 import Icon from 'react-native-vector-icons/FontAwesome';
+import EvilIcons from 'react-native-vector-icons/EvilIcons';
 import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
-import * as DocumentPicker from 'react-native-document-picker';
 import InChatViewFile from '../components/inchatview';
 import InChatFileTransfer from '../components/filetransfer';
-import { launchCamera, launchImageLibrary } from 'react-native-image-picker';
+import { launchCamera, } from 'react-native-image-picker';
 import storage from '@react-native-firebase/storage';
+import AudioRecorderPlayer from 'react-native-audio-recorder-player';
+import _pickDocument from '../components/documentpicker';
+import Location from './location';
 
+const audioRecorderPlayer = new AudioRecorderPlayer();
 const Chats = (props) => {
   const [isAttachImage, setIsAttachImage] = useState(false);
   const [isAttachFile, setIsAttachFile] = useState(false);
   const [imagePath, setImagePath] = useState('');
   const [filePath, setFilePath] = useState('');
+  const [isRecording, setIsRecording] = useState(false);
+  const [audioPath, setaudioPath] = useState(false);
+  const [duration, setDuration] = useState(0);
+  const [ispalying, setisplaiyng] = useState(false);
+  const [selectedLocation, setSelectedLocation] = useState(null);
+  const [showLocationSelection, setShowLocationSelection] = useState(false);
+  const navigation = useNavigation();
 
-  // add a function attach file using DocumentPicker.pick
+  //locatiuon
 
-  const _pickDocument = async () => {
-    try {
-      const result = await DocumentPicker.pick({
-        type: [DocumentPicker.types.allFiles],
-        copyTo: 'documentDirectory',
-        mode: 'import',
-        allowMultiSelection: true,
-      });
-      const fileUri = result[0].fileCopyUri;
-      if (!fileUri) {
-        console.log('File URI is undefined or null');
-        return;
-      }
-      if (fileUri.indexOf('.png') !== -1 || fileUri.indexOf('.jpg') !== -1) {
-        setImagePath(fileUri);
-        setIsAttachImage(true);
-      } else {
-        setFilePath(fileUri);
-        setIsAttachFile(true);
-      }
-    } catch (err) {
-      if (DocumentPicker.isCancel(err)) {
-        console.log('User cancelled file picker');
-      } else {
-        console.log('DocumentPicker err => ', err);
-        throw err;
-      }
+  const sendLocationMessage = (location) => {
+    setSelectedLocation(location);
+    setShowLocationSelection(false);
+    const newMessage = {
+      _id: Math.random().toString(),
+      text: `Location: ${location.latitude}, ${location.longitude}`,
+      createdAt: new Date(),
+      user: {
+        _id: 1,
+      },
+      location: {
+        latitude: location.latitude,
+        longitude: location.longitude,
+      },
+    };
+    handleSend([newMessage]);
+  };
+
+  //duration
+  useEffect(() => {
+    let recordingTimer;
+    if (isRecording) {
+      recordingTimer = setInterval(() => {
+        setDuration(prevDuration => prevDuration + 1);
+      }, 1000);
+    } else {
+      clearInterval(recordingTimer);
+      setDuration(0);
     }
+
+    return () => clearInterval(recordingTimer);
+  }, [isRecording]);
+  //start recording
+  const startRecording = async () => {
+
+    const audioPath = await audioRecorderPlayer.startRecorder();
+    console.log('Recording started at', audioPath);
+    audioRecorderPlayer.addRecordBackListener((e) => {
+      setIsRecording(true);
+      return;
+    });
+    console.log(audioPath);
+  };
+
+  //stop recording
+  const stopRecording = async () => {
+
+    const result = await audioRecorderPlayer.stopRecorder();
+    audioRecorderPlayer.removeRecordBackListener();
+    setIsRecording({
+      recordSecs: 0,
+    });
+    console.log(result);
+    //setDuration(0);
+    setIsRecording(false);
+    uploadAudioToFirebase(result);
+    return result;
+  };
+  //play recording
+  const playRecording = async () => {
+    const result = await audioRecorderPlayer.startPlayer();
+    console.log('Playing recorded audio:', result);
+    setisplaiyng(true);
+    return;
+  };
+
+  //pause
+  const onPausePlay = async () => {
+    const result = await audioRecorderPlayer.pausePlayer();
+    console.log('Playing paused:', result);
+    setisplaiyng(false);
+  };
+
+
+
+  //add audio to firebase
+  const uploadAudioToFirebase = async (audioPath) => {
+
+    const reference = storage().ref(`audio/${Date.now()}.mp3`);
+    await reference.putFile(audioPath);
+    console.log('Audio uploaded to Firebase storage');
+    const url = await storage()
+      .ref(`audio/${Date.now()}.mp3`)
+    //.getDownloadURL();
+    console.log('url', url);
+    setaudioPath(url);
+  };
+
+  // send recorded voice
+
+  const handleSend = async (newMessages) => {
+    setMessages((prevMessages) => GiftedChat.append(prevMessages, newMessages));
+    const { audioPath, metadata } = newMessages[0];
+    setaudioPath(null); // Reset recorded audio URI after sending
+  };
+  const handleSendRecordedAudio = () => {
+    handleSend([
+      {
+        _id: Math.random().toString(),
+        audio: {
+          uri: audioPath,
+        },
+        createdAt: new Date(),
+        user: {
+          _id: 1,
+        },
+      },
+    ]);
   };
 
   // chat footer
   const renderChatFooter = useCallback(() => {
+
+    if (audioPath) {
+      return (
+        <View style={styles.chatFooter}>
+
+          <TouchableOpacity
+            onPress={handleSendRecordedAudio}
+          ><View style={{ flexDirection: "row", marginLeft: 25 }}>
+              <Text>audio recorded</Text>
+              <Text style={{ fontSize: 15, marginLeft: 195 }}>Send </Text>
+            </View>
+          </TouchableOpacity>
+        </View>
+      );
+    }
+//when image selected
     if (imagePath) {
       return (
         <View style={styles.chatFooter}>
@@ -64,6 +173,7 @@ const Chats = (props) => {
         </View>
       );
     }
+    // when file selected
     if (filePath) {
       return (
         <View style={styles.chatFooter}>
@@ -81,15 +191,70 @@ const Chats = (props) => {
       );
     }
     return null;
-  }, [filePath, imagePath]);
- 
+  }, [filePath, imagePath, audioPath]);
+//get audio
+  const AudioMessage = ({ audioPath }) => {
+    const audioRecorderPlayer = new AudioRecorderPlayer();
+    return (
+      <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+        {ispalying ?
+          <TouchableOpacity onPress={onPausePlay} style={{ flexDirection: "row" }}>
+            <Icon name="pause" style={{ padding: 10, }} />
+          </TouchableOpacity> :
+          <TouchableOpacity onPress={playRecording}>
+            <Text style={{ padding: 10, }}>▶️ Play</Text>
+          </TouchableOpacity>}
+        {/* Add visual representation of audio waveform here */}
+        <Text style={{ marginLeft: 10 }}>{audioPath}</Text>
+      </View>
+    );
+  };
+//location message in chat
+  const renderLocationMessage = (location) => {
+    return (
+      <View style={{ width: 250, height: 150 }}>
+        <MapView
+          style={{ flex: 1 }}
+          initialRegion={{
+            latitude: location.latitude,
+            longitude: location.longitude,
+            latitudeDelta: 0.0922,
+            longitudeDelta: 0.0421,
+          }}
+        >
+          <Marker coordinate={{ latitude: location.latitude, longitude: location.longitude }} />
+        </MapView>
+      </View>
+    );
+  };
+
 
   // Modify renderBuble()
-
+  const audioMessages = [
+    { id: 1, audioPath: 'audio1.mp3' },
+    // Add more audio messages here
+  ];
   const [fileVisible, setFileVisible] = useState(false);
   const renderBubble = (props) => {
     const { currentMessage } = props;
-    if (currentMessage.file && currentMessage.file.url) {
+    //when current msg is location
+    if (currentMessage.location) {
+      return renderLocationMessage(currentMessage.location);
+    }
+    //when current msg is audio
+
+    if (currentMessage.audio) {
+      return (
+        <View>
+          {audioMessages.map((message) => (
+            <AudioMessage key={message.id} audioPath={message.audioPath} />
+          ))}
+        </View>
+      );
+    }
+    //when current msg is file
+
+    else if (currentMessage.file && currentMessage.file.url) {
       return (
         <TouchableOpacity
           style={{
@@ -121,6 +286,7 @@ const Chats = (props) => {
       );
     }
     return (
+
       <Bubble
         {...props}
         wrapperStyle={{
@@ -138,7 +304,7 @@ const Chats = (props) => {
   };
 
 
-  //scrollbottom
+  //scrollbottom icon
   const scrollToBottomComponent = () => {
     return <Icon name="angle-double-down" size={22} color="#333" />;
   };
@@ -182,7 +348,7 @@ const Chats = (props) => {
     await reference.putFile(pathToFile);
     const url = await storage()
       .ref(imagePath.assets[0].fileName)
-      .getDownloadURL();
+    // .getDownloadURL();
     console.log('url', url);
     setImagePath(url);
     // setFilePath(url);
@@ -202,15 +368,15 @@ const Chats = (props) => {
           sendTo: route.params.data.userId,
           createdAt: new Date(),
           //createdAt: Date.parse(msg.createdAt),
+          // location:'',
+          audio: {
+            uri: '',
+          },
           image: imagePath,
           file: {
             url: ''
           },
-          sent: true,
-          // Mark the message as received, using two tick
-          received: true,
-          // Mark the message as pending with a clock loader
-          pending: true,
+
         }
       }
       else if (filePath !== '') {
@@ -221,17 +387,35 @@ const Chats = (props) => {
           sendTo: route.params.data.userId,
           createdAt: new Date(),
           //createdAt: Date.parse(msg.createdAt),
+          audio: {
+            uri: '',
+          },
+          //location:'',
           image: '',
           file: {
             url: filePath
           },
-          sent: true,
-          // Mark the message as received, using two tick
-          received: true,
-          // Mark the message as pending with a clock loader
-          pending: true,
+
+        }
+      } else if (audioPath !== '') {
+        const msg = messages[0];
+        Mymsg = {
+          ...msg,
+          sendBy: route.params.id,
+          sendTo: route.params.data.userId,
+          createdAt: new Date(),
+          //createdAt: Date.parse(msg.createdAt),
+          audio: {
+            uri: audioPath,
+          },
+          image: '',
+          //location:'',
+          file: {
+            url: ''
+          },
         }
       }
+
       else {
         setMessages(previousMessages =>
           GiftedChat.append(previousMessages, Mymsg),
@@ -246,10 +430,7 @@ const Chats = (props) => {
         .doc('' + route.params.id + route.params.data.userId)
         .collection('messages')
         .add(Mymsg);
-      // setImagePath('');
-      // setIsAttachImage(false);
-      // setFilePath('');
-      // setIsAttachFile(false);
+
       firestore()
         .collection('chats')
         .doc('' + route.params.data.userId + route.params.id)
@@ -259,8 +440,10 @@ const Chats = (props) => {
       setIsAttachImage(false);
       setFilePath('');
       setIsAttachFile(false);
+      setaudioPath('');
+      setIsRecording(false);
+
     },
-      //[filePath, imagePath, isAttachFile, isAttachImage],
     )
   return (
     <View style={styles.chat}>
@@ -280,21 +463,42 @@ const Chats = (props) => {
       <GiftedChat
         messages={messages}
         onSend={messages => onSend(messages)}
-        // alwaysShowSend={true}
         user={{
           _id: props.route.params.id,
 
 
         }}
+
+
         alwaysShowSend
         renderSend={props => {
           return (
             <View>
+              {isRecording && <Text>Recording...{duration}s</Text>}
+
               <View style={{ flexDirection: "row", justifyContent: "center", alignItems: "center", padding: 5 }}>
 
-                <TouchableOpacity style={{ paddingLeft: 11 }}>
-                  <Icon name="microphone" size={20} color={'#2196F3'} />
+                <TouchableOpacity onPress={() => navigation.navigate('location')}
+                  style={{ paddingLeft: 11 }}>
+                  <EvilIcons name="location" size={20} color={'#2196F3'} />
                 </TouchableOpacity>
+                {showLocationSelection && (
+
+                  <Location onLocationSelected={sendLocationMessage} />
+                )}
+                {isRecording ? <TouchableOpacity style={{ paddingLeft: 11 }}
+                  onPress={stopRecording}
+                >
+                  <Icon name="stop"
+                    size={20} color={'#2196F3'} />
+                </TouchableOpacity> :
+
+                  <TouchableOpacity style={{ paddingLeft: 11 }}
+                    onPress={startRecording}
+                  >
+                    <Icon name={"microphone"}
+                      size={20} color={'#2196F3'} />
+                  </TouchableOpacity>}
                 <TouchableOpacity onPress={_pickDocument}
                   style={{ paddingLeft: 11 }}>
                   <MaterialIcons name="attach-file" size={20} color={'#2196F3'} />
@@ -310,8 +514,6 @@ const Chats = (props) => {
                   <Icon name='send' size={20}
                     color={'#2196F3'} style={{
                       paddingBottom: 11,
-                      //alignSelf:"center",
-                      // justifyContent:"center",
                       paddingRight: 16,
                       paddingLeft: 11
                     }}
@@ -334,7 +536,6 @@ const styles = StyleSheet.create({
 
   chat: {
     flex: 1,
-    // width:'100%'
   },
   chatFooter: {
     shadowColor: '#1F2687',
@@ -348,7 +549,8 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(255, 255, 255, 0.18)',
     flexDirection: 'row',
     padding: 5,
-    backgroundColor: 'white'
+    backgroundColor: 'white',
+    marginBottom: 10
   },
   fileContainer: {
     flex: 1,
@@ -394,7 +596,7 @@ const styles = StyleSheet.create({
   },
 
   textFooterChat: {
-    fontSize: 18,
+    fontSize: 10,
     fontWeight: 'bold',
     color: 'gray',
   },
