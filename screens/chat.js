@@ -30,6 +30,24 @@ const Chats = (props) => {
   const [showLocationSelection, setShowLocationSelection] = useState(false);
   const navigation = useNavigation();
 
+  //location permission
+useEffect(() => {
+  requestLocationPermission();
+}, []);
+
+const requestLocationPermission = async () => {
+  try {
+    const granted = await request(PERMISSIONS.ANDROID.ACCESS_FINE_LOCATION);
+    if (granted === 'granted') {
+      console.log('Location permission granted');
+    } else {
+      console.log('Location permission denied');
+    }
+  } catch (error) {
+    console.error('Error requesting location permission:', error);
+  }
+};
+
   //locatiuon
 
   const sendLocationMessage = (location) => {

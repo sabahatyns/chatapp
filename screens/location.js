@@ -1,25 +1,8 @@
 import React, { useState,useEffect } from 'react';
 import { View, StyleSheet, Text, Button } from 'react-native';
 import MapView, { Marker, PROVIDER_GOOGLE } from 'react-native-maps';
-import { request, PERMISSIONS } from 'react-native-permissions';
-//location permission
-useEffect(() => {
-    requestLocationPermission();
-  }, []);
 
-  const requestLocationPermission = async () => {
-    try {
-      const granted = await request(PERMISSIONS.ANDROID.ACCESS_FINE_LOCATION);
-      if (granted === 'granted') {
-        console.log('Location permission granted');
-      } else {
-        console.log('Location permission denied');
-      }
-    } catch (error) {
-      console.error('Error requesting location permission:', error);
-    }
-  };
-
+//location
 const Location = ({ onLocationSelected }) => {
       const [selectedLocation, setSelectedLocation] = useState(null);
 
