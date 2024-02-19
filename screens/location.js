@@ -1,4 +1,3 @@
-// LocationSelectionScreen.js
 import React, { useState } from 'react';
 import { View, StyleSheet, Text, Button } from 'react-native';
 import MapView, { Marker, PROVIDER_GOOGLE } from 'react-native-maps';
