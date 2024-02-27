@@ -8,6 +8,12 @@ import Signup from './screens/signup';
 import Main from './screens/main';
 import LocationSelectionScreen from './screens/location';
 import Location from './screens/location';
+import Menu from './screens/menu';
+import Meet from './screens/meet';
+import Room from './screens/room';
+
+
+
 
 
 const Stack = createNativeStackNavigator();
@@ -32,8 +38,23 @@ export default function Mycal() {
           Options={{ headerShown: false }}
         />
         <Stack.Screen
+          name="Menu"
+          component={Menu}
+          Options={{ headerShown: false }}
+        />
+        <Stack.Screen
           name="main"
           component={Main}
+          Options={{ headerShown: false }}
+        />
+        <Stack.Screen
+          name="meet"
+          component={Meet}
+          Options={{ headerShown: false }}
+        />
+        <Stack.Screen
+          name="room"
+          component={Room}
           Options={{ headerShown: false }}
         />
         <Stack.Screen

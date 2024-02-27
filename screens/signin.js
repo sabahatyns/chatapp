@@ -83,7 +83,8 @@ function Signin({route, navigation, ...props})  {
 
 
                 <Button1 title="Sign in"
-                    onPress={() => loginUser()} />
+                onPress={() => navigation.navigate('Menu')}
+                />
                   <Text
               style={styles.registerTextStyle}
               onPress={() => navigation.navigate('signup')}>

@@ -12,7 +12,8 @@ function Welcome(props) {
                 source={require("../assets/logo.jpg")}
                 style={styles.image} />
             <Button1 title="Let's Go"
-                onPress={() => props.navigation.navigate('signin')} />
+                onPress={() => props.navigation.navigate('signin')}
+                 />
 
         </SafeAreaView>
     );
